@@ -6,10 +6,13 @@
 package com.firsttrial.presentation
 
 import android.Manifest
+import android.app.RemoteInput
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -38,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,6 +52,7 @@ import androidx.wear.compose.material.Card
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
+import androidx.wear.input.RemoteInputIntentHelper
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.firsttrial.R
 import com.firsttrial.data.HealthData
@@ -207,6 +212,23 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun SendMessagePage(healthData: HealthData) {
+        val context = LocalContext.current
+        var customMessage by remember { mutableStateOf("Hello from Watch ⌚") }
+        
+        // Remote input launcher for text input
+        val launcher = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            result.data?.let { data ->
+                val results = RemoteInput.getResultsFromIntent(data)
+                val input = results?.getCharSequence("text_input")
+                if (input != null) {
+                    customMessage = input.toString()
+                    Log.d("WEAR", "User typed: $customMessage")
+                }
+            }
+        }
+        
         // Auto-send vitals whenever they change
         LaunchedEffect(healthData.heartRate, healthData.steps, healthData.distance, healthData.speed) {
             val location = healthData.location
@@ -230,7 +252,8 @@ class MainActivity : ComponentActivity() {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = "Page 1",
@@ -238,14 +261,49 @@ class MainActivity : ComponentActivity() {
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                
+                // Show current message (truncated if too long)
+                Text(
+                    text = if (customMessage.length > 30) "${customMessage.take(30)}..." else customMessage,
+                    style = MaterialTheme.typography.caption1,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Button to type message
                 Button(
                     onClick = {
-                        sendMessage("Hello from Watch ⌚")
+                        val intent = RemoteInputIntentHelper.createActionRemoteInputIntent()
+                        val remoteInputs = listOf(
+                            RemoteInput.Builder("text_input")
+                                .setLabel("Type message")
+                                .build()
+                        )
+                        
+                        RemoteInputIntentHelper.putRemoteInputsExtra(intent, remoteInputs)
+                        launcher.launch(intent)
                     },
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
                     Text(
-                        text = "📱 Test Message",
+                        text = "✏️ Type",
+                        style = MaterialTheme.typography.button,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Button to send message
+                Button(
+                    onClick = {
+                        sendMessage(customMessage)
+                    },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    Text(
+                        text = "📱 Send",
                         style = MaterialTheme.typography.button,
                         textAlign = TextAlign.Center
                     )

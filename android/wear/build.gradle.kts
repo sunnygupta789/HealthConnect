@@ -59,6 +59,7 @@ dependencies {
     implementation("androidx.wear.compose:compose-material:1.2.1")
     implementation("androidx.wear.compose:compose-foundation:1.2.1")
     implementation("androidx.wear:wear-tooling-preview:1.0.0")
+    implementation("androidx.wear:wear-input:1.1.0")
     implementation("androidx.activity:activity-compose:1.8.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")

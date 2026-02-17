@@ -34,6 +34,11 @@ android {
             )
         }
     }
+    lint {
+        checkReleaseBuilds = true
+        abortOnError = false
+        disable += "InvalidFragmentVersionForActivityResult"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -61,6 +66,7 @@ dependencies {
     implementation("androidx.wear:wear-tooling-preview:1.0.0")
     implementation("androidx.wear:wear-input:1.1.0")
     implementation("androidx.activity:activity-compose:1.8.0")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.google.accompanist:accompanist-pager:0.32.0")

@@ -355,7 +355,7 @@ Monitor phone logs in real-time:
 adb -s 304d40b45cd5 logcat | grep WEAR_DATA
 ```
 
-**Expected output when message received**:
+**Expected output when test message sent**:
 ```
 E WEAR_DATA: 🔥🔥🔥 MainActivity listener TRIGGERED! Path: /text-path
 E WEAR_DATA: 🔥 MainActivity: Message data: Hello from Watch ⌚
@@ -363,6 +363,13 @@ E WEAR_DATA: ✅ MainActivity: Sent to React Native
 E WEAR_DATA: 🔥🔥🔥 WearMessageService: onMessageReceived called!
 E WEAR_DATA: ✅ WearMessageService Message: Received: Hello from Watch ⌚
 E WEAR_DATA: ✅ Successfully sent to React Native!
+```
+
+**Expected output for auto-syncing vitals**:
+```
+D WEAR: ✅ Vitals auto-synced: HR:78|STEPS:150|DIST:0.11|CAL:6|SPEED:0.5|GPS:✓
+E WEAR_DATA: 🔥🔥🔥 MainActivity DataListener TRIGGERED!
+E WEAR_DATA: 🔥 MainActivity: Data: HR:78|STEPS:150|DIST:0.11|CAL:6|SPEED:0.5|GPS:✓
 ```
 
 ### 🔄 Quick Restart Commands

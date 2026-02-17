@@ -57,7 +57,8 @@ class MainActivity : ReactActivity() {
       val path = event.dataItem.uri.path
       Log.e("WEAR_DATA", "Data path: $path")
       
-      if (path == "/text-path") {
+      // Handle both old /text-path and new /vitals-data/ paths
+      if (path == "/text-path" || path?.startsWith("/vitals-data/") == true) {
         val data = event.dataItem.data
         val receivedText = data?.let { String(it) } ?: "No data"
         Log.e("WEAR_DATA", "🔥 MainActivity: Data: $receivedText")

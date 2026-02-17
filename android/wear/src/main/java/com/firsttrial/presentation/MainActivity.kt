@@ -117,18 +117,6 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 Log.d("WEAR", "Starting to send message: $text")
-                val dataClient = Wearable.getDataClient(this@MainActivity)
-                val capabilityClient = Wearable.getCapabilityClient(this@MainActivity)
-                
-                // Send using DataLayer (more reliable than MessageClient)
-                val putDataReq = com.google.android.gms.wearable.PutDataRequest.create("/text-path").apply {
-                    data = text.toByteArray()
-                }
-                val putDataTask = dataClient.putDataItem(putDataReq.setUrgent())
-                com.google.android.gms.tasks.Tasks.await(putDataTask)
-                Log.d("WEAR", "✅ Data sent via DataLayer")
-                
-                // Also send via MessageClient as backup
                 val nodeClient = Wearable.getNodeClient(this@MainActivity)
                 val messageClient = Wearable.getMessageClient(this@MainActivity)
 
@@ -153,11 +141,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun sendVitalsData(vitalsString: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val dataClient = Wearable.getDataClient(this@MainActivity)
+                
+                // Use unique path with timestamp to ensure update triggers
+                val path = "/vitals-data/${System.currentTimeMillis()}"
+                val putDataReq = com.google.android.gms.wearable.PutDataRequest.create(path).apply {
+                    data = vitalsString.toByteArray()
+                }
+                val putDataTask = dataClient.putDataItem(putDataReq.setUrgent())
+                com.google.android.gms.tasks.Tasks.await(putDataTask)
+                Log.d("WEAR", "✅ Vitals auto-synced: $vitalsString")
+            } catch (e: Exception) {
+                Log.e("WEAR", "❌ Error sending vitals: ${e.message}")
+            }
+        }
+    }
+
     @OptIn(ExperimentalPagerApi::class)
     @Composable
     fun MyScreen() {
         FirstTrialTheme {
             val pagerState = rememberPagerState()
+            
+            // Collect health data once at the top level for all pages
+            val healthData by healthDataManager.getHealthDataFlow().collectAsState(
+                initial = HealthData()
+            )
             
             // Start health tracking when app starts (runs continuously)
             LaunchedEffect(Unit) {
@@ -175,8 +187,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
                     when (page) {
-                        0 -> SendMessagePage()
-                        1 -> VitalsPage()
+                        0 -> SendMessagePage(healthData)
+                        1 -> VitalsPage(healthData)
                     }
                 }
 
@@ -194,7 +206,22 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun SendMessagePage() {
+    fun SendMessagePage(healthData: HealthData) {
+        // Auto-send vitals whenever they change
+        LaunchedEffect(healthData.heartRate, healthData.steps, healthData.distance, healthData.speed) {
+            val location = healthData.location
+            val hasGoodGps = location?.hasAccuracy() == true && location.accuracy < 50
+            
+            val vitalsData = "HR:${healthData.heartRate.toInt()}|" +
+                    "STEPS:${healthData.steps}|" +
+                    "DIST:${String.format("%.2f", healthData.distance)}|" +
+                    "CAL:${String.format("%.0f", healthData.calories)}|" +
+                    "SPEED:${String.format("%.1f", healthData.speed)}|" +
+                    "GPS:${if (hasGoodGps) "✓" else "⋯"}"
+            
+            sendVitalsData(vitalsData)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -213,26 +240,28 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        sendMessage("Hello from Watch by Sunny ⌚")
+                        sendMessage("Hello from Watch ⌚")
                     },
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
                     Text(
-                        text = "📱 Send to Phone",
+                        text = "📱 Test Message",
                         style = MaterialTheme.typography.button,
                         textAlign = TextAlign.Center
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Vitals auto-syncing...",
+                    style = MaterialTheme.typography.caption2,
+                    color = Color.Green
+                )
             }
         }
     }
 
     @Composable
-    fun VitalsPage() {
-        val healthData by healthDataManager.getHealthDataFlow().collectAsState(
-            initial = HealthData()
-        )
-
+    fun VitalsPage(healthData: HealthData) {
         Box(
             modifier = Modifier
                 .fillMaxSize()

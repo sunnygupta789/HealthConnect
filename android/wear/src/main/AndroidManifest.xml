@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Health Connect Permissions (Android 14+) -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
@@ -58,6 +59,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Background Service for Vitals Monitoring -->
+        <service
+            android:name=".service.VitalsBackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="health|location" />
     </application>
 
 </manifest>

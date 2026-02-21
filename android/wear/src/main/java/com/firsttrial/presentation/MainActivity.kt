@@ -58,6 +58,7 @@ import com.firsttrial.R
 import com.firsttrial.data.HealthData
 import com.firsttrial.data.HealthDataManager
 import com.firsttrial.presentation.theme.FirstTrialTheme
+import com.firsttrial.service.VitalsBackgroundService
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
@@ -73,11 +74,26 @@ class MainActivity : ComponentActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        hasPermissions = permissions.all { it.value }
-        if (hasPermissions) {
-            Log.d("WEAR", "✅ All permissions granted")
+        // Check only essential permissions
+        val essentialPermissions = arrayOf(
+            Manifest.permission.BODY_SENSORS,
+            Manifest.permission.ACTIVITY_RECOGNITION,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        
+        val essentialGranted = essentialPermissions.all { permission ->
+            permissions[permission] == true
+        }
+        
+        hasPermissions = essentialGranted
+        
+        if (essentialGranted) {
+            Log.d("WEAR", "✅ All essential permissions granted")
+            // Start background service
+            startBackgroundMonitoring()
         } else {
-            Log.e("WEAR", "❌ Some permissions denied")
+            val deniedEssential = essentialPermissions.filter { permissions[it] != true }
+            Log.e("WEAR", "❌ Essential permissions denied: $deniedEssential")
         }
     }
 
@@ -112,10 +128,18 @@ class MainActivity : ComponentActivity() {
         if (missingPermissions.isEmpty()) {
             hasPermissions = true
             Log.d("WEAR", "✅ All permissions already granted")
+            // Start background service
+            VitalsBackgroundService.start(this)
+            Log.d("WEAR", "🚀 Background service started")
         } else {
             Log.d("WEAR", "Requesting permissions: $missingPermissions")
             permissionLauncher.launch(requiredPermissions)
         }
+    }
+    
+    private fun startBackgroundMonitoring() {
+        Log.d("WEAR", "🎯 Starting background vitals monitoring service")
+        VitalsBackgroundService.start(this)
     }
 
     fun sendMessage(text: String) {

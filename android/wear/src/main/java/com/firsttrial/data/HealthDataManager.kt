@@ -62,6 +62,7 @@ class HealthDataManager(private val context: Context) {
 
     private val bgScope = CoroutineScope(Dispatchers.Default)
     private var sensorEventListener: SensorEventListener? = null
+    private var locationCallback: LocationCallback? = null
 
     /**
      * Get health data flow with real-time updates
@@ -205,8 +206,6 @@ class HealthDataManager(private val context: Context) {
         }
 
         // Location for Speed
-        var storedLocationCallback: LocationCallback? = null
-        
         bgScope.launch {
             try {
                 if (hasLocationPermission()) {
@@ -232,7 +231,7 @@ class HealthDataManager(private val context: Context) {
                         }
                     }
                     
-                    storedLocationCallback = callback
+                    locationCallback = callback
                     fusedLocationClient.requestLocationUpdates(
                         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build(),
                         callback,
@@ -258,8 +257,8 @@ class HealthDataManager(private val context: Context) {
                 
                 stepCounterManager.stopCounting()
                 
-                if (hasLocationPermission() && storedLocationCallback != null) {
-                    fusedLocationClient.removeLocationUpdates(storedLocationCallback!!)
+                if (hasLocationPermission() && locationCallback != null) {
+                    fusedLocationClient.removeLocationUpdates(locationCallback!!)
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Error during cleanup", e)
@@ -275,5 +274,24 @@ class HealthDataManager(private val context: Context) {
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun stopCollection() {
+        Log.i(tag, "Manually stopping all data collection")
+        try {
+            if (sensorEventListener != null) {
+                sensorManager.unregisterListener(sensorEventListener)
+                sensorEventListener = null
+            }
+            
+            stepCounterManager.stopCounting()
+            
+            if (hasLocationPermission() && locationCallback != null) {
+                fusedLocationClient.removeLocationUpdates(locationCallback!!)
+                locationCallback = null
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Error during manual stop: ${e.message}", e)
+        }
     }
 }
